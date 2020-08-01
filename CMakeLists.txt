@@ -1,10 +1,18 @@
 cmake_minimum_required(VERSION 3.18 FATAL_ERROR)
 
 set(proj_name TestOpenglEngine)
-
 project(${proj_name})
 
-add_executable(${proj_name} main.cpp)
+set(CMAKE_CXX_STANDARD 17)
+
+add_executable(${proj_name} 
+	main.cpp
+	src/renderer/shaderProgram.cpp
+	src/renderer/shaderProgram.h
+	src/renderer/object.cpp
+	src/renderer/object.h
+	src/extra/extra.h
+)
 
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
