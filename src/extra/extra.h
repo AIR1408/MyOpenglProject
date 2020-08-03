@@ -1,9 +1,8 @@
 #pragma once
+
 #include <iostream>
 
-namespace ext {
-    int err(char* msg) {
-        std::cerr << *msg << std::endl;
-        exit(-1);
-    }
+namespace ext 
+{
+    void err(std::string msg);
 }

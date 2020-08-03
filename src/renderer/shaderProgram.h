@@ -1,13 +1,16 @@
 #pragma once
-#include <glad/glad.h>
 
-class ShaderProgram {
+#include <glad/glad.h>
+#include <iostream>
+
+class ShaderProgram
+{
 public:
-	ShaderProgram(const GLchar*& vertex_shader_source, const GLchar*& fragment_shader_source);
+	ShaderProgram(std::string& vertex_shader_source, std::string& fragment_shader_source);
 	~ShaderProgram();
 
 	bool isCompiled() { return success; };
-	bool use();
+	bool draw();
 
 
 private:
@@ -15,5 +18,5 @@ private:
 	GLint success = false;
 	GLchar infoLog[512];
 
-	void linkShader(const GLchar*& shader_source, const GLenum shader_type);
+	void linkShader(std::string& shader_source, GLenum shader_type);
 };

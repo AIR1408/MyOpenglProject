@@ -1,7 +1,10 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
 #include <iostream>
+#include <fstream>
+#include "src/extra/extra.h"
 #include "src/renderer/shaderProgram.h"
+#include "src/resource_manager/ResourceManager.h"
 
 using namespace std;
 
@@ -23,32 +26,12 @@ GLfloat colors[] = {
     1.0f, 0.0f, 0.0f,
     0.0f, 1.0f, 0.0f,
     0.0f, 0.0f, 1.0f,
-    1.0f, 0.0f, 1.0f,
+    5.0f, 5.0f, 1.0f
 };
 
-const char* vertex_shader =
-"#version 460\n"
-"layout(location = 0) in vec3 vertex_position;"
-"layout(location = 1) in vec3 vertex_color;"
-"out vec3 color;"
-"void main() {"
-"    color = vertex_color;"
-"    gl_Position = vec4(vertex_position, 1.0);"
-"}";
+string vertex_shader;
 
-const char* fragment_shader =
-"#version 460\n"
-"in vec3 color;"
-"out vec4 frag_color;"
-"void main(){"
-"   frag_color = vec4(color, 1.0);"
-"}";
-
-int err(char* msg) {
-    std::cout << *msg;
-    system("pause");
-    return -1;
-}
+string fragment_shader;
 
 void window_size_callback(GLFWwindow* window, int width, int height) {
     winSizeX = width, winSizeY = height;
@@ -60,13 +43,13 @@ void key_callback(GLFWwindow* window, int key, int scancode, int action, int mod
         glfwSetWindowShouldClose(window, GLFW_TRUE);
 }
 
-int main(void)
+int main()
 {
     GLFWwindow* pWindow;
 
     /* Initialize the library */
     if (!glfwInit())
-        return err("Cant init glfw.");
+        ext::err("Cant init glfw.");
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 4);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 6);
@@ -76,7 +59,7 @@ int main(void)
     /* Create a windowed mode window and its OpenGL context */
     pWindow = glfwCreateWindow(winSizeX, winSizeY, "MyEngine", NULL, NULL);
     if (!pWindow)
-        return err("glfwCreateWindow failed!");
+        ext::err("glfwCreateWindow failed!");
 
     glfwSetWindowSizeCallback(pWindow, window_size_callback);
     glfwSetKeyCallback(pWindow, key_callback);
@@ -85,15 +68,17 @@ int main(void)
     glfwMakeContextCurrent(pWindow);
 
     if (!gladLoadGL())
-        return err("Cant load glad!");
+        ext::err("Cant load glad!");
 
     cout << "Renderer: " << glGetString(GL_RENDERER) << endl;
     cout << "OpenGL version: " << glGetString(GL_VERSION) << endl;
 
-    //glfwGetFramebufferSize(pWindow, &winSizeX, &winSizeY);
-    glViewport(0, 0, winSizeX, winSizeY);
+    ResourceManager rManager;
 
-    ShaderProgram* shader = new ShaderProgram(vertex_shader, fragment_shader);
+    vertex_shader = rManager.getSource("..\\res\\shaders\\vertex.txt");
+    fragment_shader = rManager.getSource("..\\res\\shaders\\fragment.txt");
+
+    ShaderProgram shader(vertex_shader, fragment_shader);
 
 
     GLuint ebo, vao, points_vbo, colors_vbo;
@@ -127,7 +112,7 @@ int main(void)
     {
         /* Render here */
         glClear(GL_COLOR_BUFFER_BIT);
-        shader->use();
+        shader.draw();
         glBindVertexArray(vao);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
         glBindVertexArray(0);
@@ -139,7 +124,6 @@ int main(void)
         glfwPollEvents();
     }
 
-    delete shader;
     glfwTerminate();
     return 0;
 }
