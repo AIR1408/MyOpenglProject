@@ -5,10 +5,16 @@
 #include <fstream>
 #include <glad/glad.h>
 
+#define STB_IMAGE_IMPLEMENTATION
+#define STBI_ONLY_PNG
+#define STB_IMAGE_STATIC
+#include "stb_image.h"
+
 class ResourceManager
 {
 public:
-	std::string getSource(char* FilePath);
+	std::string loadSource(char* FilePath);
+	GLuint* loadTexture(std::string FilePath);
 private:
 
 };

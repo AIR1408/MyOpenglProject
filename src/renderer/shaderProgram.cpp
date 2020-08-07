@@ -1,16 +1,16 @@
-#include "shaderProgram.h"
+#include "ShaderProgram.h"
 
 ShaderProgram::ShaderProgram(std::string& vertex_shader_source, std::string& fragment_shader_source)
 {
-    sp_ID = glCreateProgram();
+    shader_program_ID = glCreateProgram();
 
     linkShader(vertex_shader_source, GL_VERTEX_SHADER);
     linkShader(fragment_shader_source, GL_FRAGMENT_SHADER);
-    glLinkProgram(sp_ID);
-    glGetProgramiv(sp_ID, GL_LINK_STATUS, &success);
+    glLinkProgram(shader_program_ID);
+    glGetProgramiv(shader_program_ID, GL_LINK_STATUS, &success);
     if (!success) 
     {
-        glGetProgramInfoLog(sp_ID, 512, nullptr, infoLog);
+        glGetProgramInfoLog(shader_program_ID, 512, nullptr, infoLog);
         std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED "  << infoLog << std::endl;
         exit(-1);
     }
@@ -18,12 +18,27 @@ ShaderProgram::ShaderProgram(std::string& vertex_shader_source, std::string& fra
 
 ShaderProgram::~ShaderProgram()
 {
-    glDeleteProgram(sp_ID);
+    glDeleteProgram(shader_program_ID);
 }
 
-bool ShaderProgram::draw()
+void ShaderProgram::setInt(std::string name, GLuint value)
 {
-    glUseProgram(sp_ID);
+    glUniform1i(glGetUniformLocation(shader_program_ID, name.c_str()), value);
+}
+
+void ShaderProgram::setVector(std::string name, glm::vec3 vector)
+{
+    glUniform3f(glGetUniformLocation(shader_program_ID, name.c_str()), vector.x, vector.y, vector.z);
+}
+
+void ShaderProgram::setMatrix(std::string name, GLfloat* value)
+{
+    glUniformMatrix4fv(glGetUniformLocation(shader_program_ID, name.c_str()), 1, GL_FALSE, value);
+}
+
+bool ShaderProgram::use()
+{
+    glUseProgram(shader_program_ID);
     return true;
 }
 
@@ -36,7 +51,7 @@ void ShaderProgram::linkShader(std::string& shader_source, GLenum shader_type)
     glGetShaderiv(shader_ID, GL_COMPILE_STATUS, &success);
     if (success)
     {
-        glAttachShader(sp_ID, shader_ID);
+        glAttachShader(shader_program_ID, shader_ID);
         glDeleteShader(shader_ID);
     }
     else 

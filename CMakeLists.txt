@@ -5,10 +5,11 @@ project(${proj_name})
 
 add_executable(${proj_name} 
 	main.cpp
-	src/renderer/shaderProgram.cpp
-	src/renderer/shaderProgram.h
-	src/renderer/object.cpp
-	src/renderer/object.h
+	src/resource_manager/stb_image.h
+	src/renderer/ShaderProgram.cpp
+	src/renderer/ShaderProgram.h
+	src/renderer/Mesh.cpp
+	src/renderer/Mesh.h
 	src/resource_manager/ResourceManager.cpp
 	src/resource_manager/ResourceManager.h
 	src/extra/extra.cpp
@@ -27,6 +28,8 @@ target_link_libraries(${proj_name} glfw)
 
 add_subdirectory(external/glad)
 target_link_libraries(${proj_name} glad)
+
+include_directories(external/glm)
 
 set_target_properties(${proj_name} PROPERTIES RUNTIME_OUTPUT_DIRECTORY $(CMAKE_BINARY_DIR)/bin/)
 add_custom_command(TARGET ${proj_name} POST_BUILD 
