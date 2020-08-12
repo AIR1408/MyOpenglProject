@@ -14,9 +14,11 @@ std::string ResourceManager::loadSource(char* FilePath)
     return buf.str();
 }
 
-GLuint* ResourceManager::loadTexture(std::string FilePath)
+ext::Texture* ResourceManager::loadTexture(std::string FilePath)
 {
+    ext::Texture* texture = new ext::Texture;
     int width = 0, height = 0, channels = 0;
+    GLenum chan;
     stbi_set_flip_vertically_on_load(true);
     unsigned char* pixels = stbi_load(FilePath.c_str(), &width, &height, &channels, 0);
 
@@ -26,11 +28,21 @@ GLuint* ResourceManager::loadTexture(std::string FilePath)
         return nullptr;
     }
 
-    GLuint* texture = new GLuint;
-    glGenTextures(1, texture);
+    switch (channels)
+    {
+    case 3: chan = GL_RGB;
+        break;
+    case 4: chan = GL_RGBA;
+        break;
+    default: chan = GL_RGBA;
+        break;
+    }
 
-    glBindTexture(GL_TEXTURE_2D, *texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, pixels);
+    glGenTextures(1, &texture->id);
+
+    glBindTexture(GL_TEXTURE_2D, texture->id);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, chan, GL_UNSIGNED_BYTE, pixels);
+    //glGenerateMipmap(GL_TEXTURE_2D);
 
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);

@@ -1,10 +1,10 @@
 #include "Mesh.h"
 
-Mesh::Mesh(std::vector<ext::Vertex> vertices, std::vector<GLuint> indices)
+Mesh::Mesh(std::vector<ext::Vertex> vertices, std::vector<GLuint> indices, std::vector<ext::Texture> textures)
 {
     this->vertices = vertices;
     this->indices = indices;
-    //this->textures = textures;
+    this->textures = textures;
 
     setupMesh();
 }
@@ -46,6 +46,12 @@ Mesh::~Mesh()
 
 void Mesh::draw()
 {
+    for (int i = 0; i < textures.size(); i++) 
+    {
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, textures[i].id);
+    }
+
     glBindVertexArray(vao);
     glDrawElements(GL_TRIANGLES, indices.size(), GL_UNSIGNED_INT, 0);
     glBindVertexArray(0);

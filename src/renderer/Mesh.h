@@ -8,7 +8,7 @@
 class Mesh
 {
 public:
-	Mesh(std::vector<ext::Vertex> vertices, std::vector<GLuint> indeces);
+	Mesh(std::vector<ext::Vertex> vertices, std::vector<GLuint> indeces, std::vector<ext::Texture> textures);
 	~Mesh();
 
 	void draw();

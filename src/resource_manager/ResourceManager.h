@@ -4,6 +4,7 @@
 #include <sstream>
 #include <fstream>
 #include <glad/glad.h>
+#include "../extra/extra.h"
 
 #define STB_IMAGE_IMPLEMENTATION
 #define STBI_ONLY_PNG
@@ -14,7 +15,7 @@ class ResourceManager
 {
 public:
 	std::string loadSource(char* FilePath);
-	GLuint* loadTexture(std::string FilePath);
+	ext::Texture* loadTexture(std::string FilePath);
 private:
 
 };

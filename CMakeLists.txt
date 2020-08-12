@@ -14,6 +14,8 @@ add_executable(${proj_name}
 	src/resource_manager/ResourceManager.h
 	src/extra/extra.cpp
 	src/extra/extra.h
+	src/objects/Camera.h
+	src/objects/Camera.cpp
 )
 
 target_compile_features(${proj_name} PUBLIC cxx_std_17)

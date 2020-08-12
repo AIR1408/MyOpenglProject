@@ -31,9 +31,9 @@ void ShaderProgram::setVector(std::string name, glm::vec3 vector)
     glUniform3f(glGetUniformLocation(shader_program_ID, name.c_str()), vector.x, vector.y, vector.z);
 }
 
-void ShaderProgram::setMatrix(std::string name, GLfloat* value)
+void ShaderProgram::setMatrix(std::string name, glm::mat4 matrix)
 {
-    glUniformMatrix4fv(glGetUniformLocation(shader_program_ID, name.c_str()), 1, GL_FALSE, value);
+    glUniformMatrix4fv(glGetUniformLocation(shader_program_ID, name.c_str()), 1, GL_FALSE, glm::value_ptr(matrix));
 }
 
 bool ShaderProgram::use()
