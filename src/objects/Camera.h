@@ -1,4 +1,5 @@
-#pragma once
+#ifndef CAMERA_H
+#define CAMERA_H
 
 #include <glm/vec3.hpp>
 #include <glm/geometric.hpp>
@@ -36,3 +37,5 @@ private:
 
 	//void CameraInit();
 };
+
+#endif // !CAMERA_H

@@ -1,4 +1,5 @@
-#pragma once
+#ifndef SHADER_PROGRAM_H
+#define SHADER_PROGRAM_H
 
 #include <glad/glad.h>
 #include <iostream>
@@ -26,3 +27,5 @@ private:
 
 	void linkShader(std::string& shader_source, GLenum shader_type);
 };
+
+#endif // !SHADER_PROGRAM_H

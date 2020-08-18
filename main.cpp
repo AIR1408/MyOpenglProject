@@ -1,89 +1,86 @@
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <fstream>
-#include <cmath>
-#include <vector>
 
 #include "src/extra/extra.h"
 #include "src/renderer/shaderProgram.h"
 #include "src/resource_manager/ResourceManager.h"
 #include "src/renderer/Mesh.h"
 #include "src/objects/Camera.h"
+#include "src/renderer/Model.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-#include <glm\gtx\euler_angles.hpp>
+
 using namespace std;
 
 int winSizeX = 800, winSizeY = 600;
 
-float del = 1.f / 3.f, dek  = 2 * del;
+float del = 1.f / 3.f, dek  = 2.f / 3.f;
 
 vector<ext::Vertex> vert = {
-    ext::Vertex{glm::vec3( 1.0, -1.0, -1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + 0.0, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0, -1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + del, 0.0 + 0.5)},
-    ext::Vertex{glm::vec3(-1.0, -1.0, -1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + del, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0, -1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + 0.0, 0.0 + 0.5)},
-                                 
-    ext::Vertex{glm::vec3( 1.0,  1.0, -1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + 0.0, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0,  1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + del, 0.5 + 0.5)},
-    ext::Vertex{glm::vec3(-1.0,  1.0, -1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + del, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0,  1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + 0.0, 0.5 + 0.5)},
-                                     
-    ext::Vertex{glm::vec3( 1.0, -1.0,  1.0),   glm::vec3(1.0,  0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0, -1.0),   glm::vec3(1.0,  0.0,  0.0),   glm::vec2(0.0 + del, 0.5 + 0.5)},
-    ext::Vertex{glm::vec3( 1.0, -1.0, -1.0),   glm::vec3(1.0,  0.0,  0.0),   glm::vec2(0.0 + del, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0,  1.0),   glm::vec3(1.0,  0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.5 + 0.5)},
-                                   
-    ext::Vertex{glm::vec3(-1.0, -1.0,  1.0),   glm::vec3(0.0,  0.0,  1.0),   glm::vec2(dek + 0.0, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0,  1.0),   glm::vec3(0.0,  0.0,  1.0),   glm::vec2(dek + del, 0.5 + 0.5)},
-    ext::Vertex{glm::vec3( 1.0, -1.0,  1.0),   glm::vec3(0.0,  0.0,  1.0),   glm::vec2(dek + del, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0,  1.0),   glm::vec3(0.0,  0.0,  1.0),   glm::vec2(dek + 0.0, 0.5 + 0.5)},
-                       
-    ext::Vertex{glm::vec3(-1.0, -1.0, -1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + 0.0, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0, -1.0,  1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + del, 0.0 + 0.5)},
-    ext::Vertex{glm::vec3( 1.0, -1.0, -1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + del, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0, -1.0,  1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + 0.0, 0.0 + 0.5)},
+    {{ 1.0, -1.0, -1.0},   {0.0,  0.0, -1.0},   {dek + 0.0, 0.0 + 0.0}},
+    {{-1.0,  1.0, -1.0},   {0.0,  0.0, -1.0},   {dek + del, 0.0 + 0.5}},
+    {{-1.0, -1.0, -1.0},   {0.0,  0.0, -1.0},   {dek + del, 0.0 + 0.0}},
+    {{ 1.0,  1.0, -1.0},   {0.0,  0.0, -1.0},   {dek + 0.0, 0.0 + 0.5}},
                           
-    ext::Vertex{glm::vec3(-1.0, -1.0, -1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0,  1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + del, 0.0 + 0.5)},
-    ext::Vertex{glm::vec3(-1.0, -1.0,  1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + del, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0, -1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.0 + 0.5)},
+    {{ 1.0,  1.0, -1.0},   {0.0,  1.0,  0.0},   {del + 0.0, 0.5 + 0.0}},
+    {{-1.0,  1.0,  1.0},   {0.0,  1.0,  0.0},   {del + del, 0.5 + 0.5}},
+    {{-1.0,  1.0, -1.0},   {0.0,  1.0,  0.0},   {del + del, 0.5 + 0.0}},
+    {{ 1.0,  1.0,  1.0},   {0.0,  1.0,  0.0},   {del + 0.0, 0.5 + 0.5}},
+                        
+    {{ 1.0, -1.0,  1.0},   {1.0,  0.0,  0.0},   {0.0 + 0.0, 0.5 + 0.0}},
+    {{ 1.0,  1.0, -1.0},   {1.0,  0.0,  0.0},   {0.0 + del, 0.5 + 0.5}},
+    {{ 1.0, -1.0, -1.0},   {1.0,  0.0,  0.0},   {0.0 + del, 0.5 + 0.0}},
+    {{ 1.0,  1.0,  1.0},   {1.0,  0.0,  0.0},   {0.0 + 0.0, 0.5 + 0.5}},
+                    
+    {{-1.0, -1.0,  1.0},   {0.0,  0.0,  1.0},   {dek + 0.0, 0.5 + 0.0}},
+    {{ 1.0,  1.0,  1.0},   {0.0,  0.0,  1.0},   {dek + del, 0.5 + 0.5}},
+    {{ 1.0, -1.0,  1.0},   {0.0,  0.0,  1.0},   {dek + del, 0.5 + 0.0}},
+    {{-1.0,  1.0,  1.0},   {0.0,  0.0,  1.0},   {dek + 0.0, 0.5 + 0.5}},
+                   
+    {{-1.0, -1.0, -1.0},   {0.0, -1.0,  0.0},   {del + 0.0, 0.0 + 0.0}},
+    {{ 1.0, -1.0,  1.0},   {0.0, -1.0,  0.0},   {del + del, 0.0 + 0.5}},
+    {{ 1.0, -1.0, -1.0},   {0.0, -1.0,  0.0},   {del + del, 0.0 + 0.0}},
+    {{-1.0, -1.0,  1.0},   {0.0, -1.0,  0.0},   {del + 0.0, 0.0 + 0.5}},
+                         
+    {{-1.0, -1.0, -1.0},   {-1.0, 0.0,  0.0},   {0.0 + 0.0, 0.0 + 0.0}},
+    {{-1.0,  1.0,  1.0},   {-1.0, 0.0,  0.0},   {0.0 + del, 0.0 + 0.5}},
+    {{-1.0, -1.0,  1.0},   {-1.0, 0.0,  0.0},   {0.0 + del, 0.0 + 0.0}},
+    {{-1.0,  1.0, -1.0},   {-1.0, 0.0,  0.0},   {0.0 + 0.0, 0.0 + 0.5}},
 };
 
 vector<ext::Vertex> lightvert = {
-    ext::Vertex{glm::vec3( 1.0, -1.0, -1.0),   glm::vec3(0.0,  0.0, 1.0),   glm::vec2(dek + 0.0, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0, -1.0),   glm::vec3(0.0,  0.0, 1.0),   glm::vec2(dek + del, 0.0 + 0.5)},
-    ext::Vertex{glm::vec3(-1.0, -1.0, -1.0),   glm::vec3(0.0,  0.0, 1.0),   glm::vec2(dek + del, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0, -1.0),   glm::vec3(0.0,  0.0, 1.0),   glm::vec2(dek + 0.0, 0.0 + 0.5)},
-                                 
-    ext::Vertex{glm::vec3( 1.0,  1.0, -1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + 0.0, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0,  1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + del, 0.5 + 0.5)},
-    ext::Vertex{glm::vec3(-1.0,  1.0, -1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + del, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0,  1.0),   glm::vec3(0.0, -1.0,  0.0),   glm::vec2(del + 0.0, 0.5 + 0.5)},
-                                     
-    ext::Vertex{glm::vec3( 1.0, -1.0,  1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0, -1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + del, 0.5 + 0.5)},
-    ext::Vertex{glm::vec3( 1.0, -1.0, -1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + del, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0,  1.0),   glm::vec3(-1.0, 0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.5 + 0.5)},
-                                   
-    ext::Vertex{glm::vec3(-1.0, -1.0,  1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + 0.0, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0,  1.0,  1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + del, 0.5 + 0.5)},
-    ext::Vertex{glm::vec3( 1.0, -1.0,  1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + del, 0.5 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0,  1.0),   glm::vec3(0.0,  0.0, -1.0),   glm::vec2(dek + 0.0, 0.5 + 0.5)},
-                       
-    ext::Vertex{glm::vec3(-1.0, -1.0, -1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + 0.0, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3( 1.0, -1.0,  1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + del, 0.0 + 0.5)},
-    ext::Vertex{glm::vec3( 1.0, -1.0, -1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + del, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0, -1.0,  1.0),   glm::vec3(0.0,  1.0,  0.0),   glm::vec2(del + 0.0, 0.0 + 0.5)},
-                          
-    ext::Vertex{glm::vec3(-1.0, -1.0, -1.0),   glm::vec3( 1.0, 0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0,  1.0),   glm::vec3( 1.0, 0.0,  0.0),   glm::vec2(0.0 + del, 0.0 + 0.5)},
-    ext::Vertex{glm::vec3(-1.0, -1.0,  1.0),   glm::vec3( 1.0, 0.0,  0.0),   glm::vec2(0.0 + del, 0.0 + 0.0)},
-    ext::Vertex{glm::vec3(-1.0,  1.0, -1.0),   glm::vec3( 1.0, 0.0,  0.0),   glm::vec2(0.0 + 0.0, 0.0 + 0.5)},
-};
+    {{ 1.0, -1.0, -1.0},   { 0.0,  0.0,  1.0},   {dek + 0.0, 0.0 + 0.0}},
+    {{-1.0,  1.0, -1.0},   { 0.0,  0.0,  1.0},   {dek + del, 0.0 + 0.5}},
+    {{-1.0, -1.0, -1.0},   { 0.0,  0.0,  1.0},   {dek + del, 0.0 + 0.0}},
+    {{ 1.0,  1.0, -1.0},   { 0.0,  0.0,  1.0},   {dek + 0.0, 0.0 + 0.5}},
+                             
+    {{ 1.0,  1.0, -1.0},   { 0.0, -1.0,  0.0},   {del + 0.0, 0.5 + 0.0}},
+    {{-1.0,  1.0,  1.0},   { 0.0, -1.0,  0.0},   {del + del, 0.5 + 0.5}},
+    {{-1.0,  1.0, -1.0},   { 0.0, -1.0,  0.0},   {del + del, 0.5 + 0.0}},
+    {{ 1.0,  1.0,  1.0},   { 0.0, -1.0,  0.0},   {del + 0.0, 0.5 + 0.5}},
 
+    {{ 1.0, -1.0,  1.0},   {-1.0,  0.0,  0.0},   {0.0 + 0.0, 0.5 + 0.0}},
+    {{ 1.0,  1.0, -1.0},   {-1.0,  0.0,  0.0},   {0.0 + del, 0.5 + 0.5}},
+    {{ 1.0, -1.0, -1.0},   {-1.0,  0.0,  0.0},   {0.0 + del, 0.5 + 0.0}},
+    {{ 1.0,  1.0,  1.0},   {-1.0,  0.0,  0.0},   {0.0 + 0.0, 0.5 + 0.5}},
+
+    {{-1.0, -1.0,  1.0},   { 0.0,  0.0, -1.0},   {dek + 0.0, 0.5 + 0.0}},
+    {{ 1.0,  1.0,  1.0},   { 0.0,  0.0, -1.0},   {dek + del, 0.5 + 0.5}},
+    {{ 1.0, -1.0,  1.0},   { 0.0,  0.0, -1.0},   {dek + del, 0.5 + 0.0}},
+    {{-1.0,  1.0,  1.0},   { 0.0,  0.0, -1.0},   {dek + 0.0, 0.5 + 0.5}},
+                             
+    {{-1.0, -1.0, -1.0},   { 0.0,  1.0,  0.0},   {del + 0.0, 0.0 + 0.0}},
+    {{ 1.0, -1.0,  1.0},   { 0.0,  1.0,  0.0},   {del + del, 0.0 + 0.5}},
+    {{ 1.0, -1.0, -1.0},   { 0.0,  1.0,  0.0},   {del + del, 0.0 + 0.0}},
+    {{-1.0, -1.0,  1.0},   { 0.0,  1.0,  0.0},   {del + 0.0, 0.0 + 0.5}},
+
+    {{-1.0, -1.0, -1.0},   { 1.0, 0.0,  0.0},   {0.0 + 0.0, 0.0 + 0.0}},
+    {{-1.0,  1.0,  1.0},   { 1.0, 0.0,  0.0},   {0.0 + del, 0.0 + 0.5}},
+    {{-1.0, -1.0,  1.0},   { 1.0, 0.0,  0.0},   {0.0 + del, 0.0 + 0.0}},
+    {{-1.0,  1.0, -1.0},   { 1.0, 0.0,  0.0},   {0.0 + 0.0, 0.0 + 0.5}},
+};
 
 vector<GLuint> ind = {
     0, 1, 2, 3, 1, 0,
@@ -95,17 +92,17 @@ vector<GLuint> ind = {
 };
 
 vector<ext::Vertex> vert2 = {
-    ext::Vertex{glm::vec3(0.0, 0.0,  0.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-    ext::Vertex{glm::vec3(0.0, 0.1,  0.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-    ext::Vertex{glm::vec3(0.0, 0.05,  10.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-
-    ext::Vertex{glm::vec3(0.0, 0.0,  0.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-    ext::Vertex{glm::vec3(0.0, 0.1,  0.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-    ext::Vertex{glm::vec3(3.0, 0.05,  0.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-
-    ext::Vertex{glm::vec3(0.0, 0.0,  0.0),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-    ext::Vertex{glm::vec3(0.1, 0.0,  0.1),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
-    ext::Vertex{glm::vec3(0.05, 1.0,  0.05),   glm::vec3(1.0,  1.0,  1.0),   glm::vec2(0.0,  0.0)},
+    ext::Vertex{glm::vec3(0.0, 0.0,  0.0),   glm::vec3(-1.0,  0.0,  0.0),   glm::vec2( )},
+    ext::Vertex{glm::vec3(0.0, 0.1,  0.0),   glm::vec3(-1.0,  0.0,  0.0),   glm::vec2( )},
+    ext::Vertex{glm::vec3(0.0, 0.0,  10.),   glm::vec3(-1.0,  0.0,  0.0),   glm::vec2( )},
+                                                                                       
+    ext::Vertex{glm::vec3(0.0, 0.0,  0.0),   glm::vec3( 0.0,  0.0, -1.0),   glm::vec2( )},
+    ext::Vertex{glm::vec3(0.0, 0.1,  0.0),   glm::vec3( 0.0,  0.0, -1.0),   glm::vec2( )},
+    ext::Vertex{glm::vec3(3.0, 0.0,  0.0),   glm::vec3( 0.0,  0.0, -1.0),   glm::vec2( )},
+                                                                                       
+    ext::Vertex{glm::vec3(0.0, 0.0,  0.0),   glm::vec3( 1.0,  0.0,  1.0),   glm::vec2( )},
+    ext::Vertex{glm::vec3(0.1, 0.0,  0.1),   glm::vec3( 1.0,  0.0,  1.0),   glm::vec2( )},
+    ext::Vertex{glm::vec3(0.0, 1.0,  0.0),   glm::vec3( 1.0,  0.0,  1.0),   glm::vec2( )},
 };
 
 vector<GLuint> ind2 = {
@@ -171,24 +168,18 @@ int main()
     cout << "Renderer: " << glGetString(GL_RENDERER) << endl;
     cout << "OpenGL version: " << glGetString(GL_VERSION) << endl;
 
-    ResourceManager manager;
-    vertex_shader = new string, fragment_shader = new string;
-    *vertex_shader = manager.loadSource("..\\res\\shaders\\vertex.txt");
-    *fragment_shader = manager.loadSource("..\\res\\shaders\\fragment.txt");
-    ext::Texture* cubeTex = manager.loadTexture("..\\res\\textures\\cube.png");
-    ext::Texture* lightTex = manager.loadTexture("..\\res\\textures\\light.png");
-
-
+    ResourceManager manager("..\\res");
+    ext::Texture* cubeTex = manager.loadTexture("\\cube.png");
+    ext::Texture* lightTex = manager.loadTexture("\\light.png");
     
     vector<ext::Texture> cubeTexVect = { *cubeTex };
     vector<ext::Texture> lightTexVect = { *lightTex };
 
     {
-        ShaderProgram shader(*vertex_shader, *fragment_shader);
+        auto shader = manager.loadProgram();
         if (!shader.isCompiled()) exit(-1);
         delete vertex_shader, fragment_shader;
 
-        
         Mesh m_obj[10] = {
             Mesh(vert, ind, cubeTexVect),
             Mesh(vert, ind, cubeTexVect),
@@ -202,15 +193,36 @@ int main()
             Mesh(vert, ind, cubeTexVect)
         };
 
-        Mesh m_obj2(vert2, ind2, vector<ext::Texture>());
+        Mesh coords(vert2, ind2, vector<ext::Texture>());
         Mesh lightCube(lightvert, ind, lightTexVect);
         
         shader.use();
         shader.setInt("Texture0", 0);
         
+        
+        std::vector<ext::OBJECT>* objFile = new std::vector<ext::OBJECT>;
+        *objFile = manager.loadObject("\\backpack.obj");
+
+        auto testModel = translateToModel(*objFile);
+        delete objFile;
+
+
         glm::mat4 coord_model = glm::mat4(1.0);
         glm::mat4 light_model = glm::mat4(1.0);
         glm::mat4 light_model2 = glm::mat4(1.0);
+        glm::mat4 modelArr[10];
+        testModel->matrix = glm::translate(testModel->matrix, { 1.0, 1.0, 1.0 });
+        testModel->matrix = glm::scale(testModel->matrix, { 0.5, 0.5, 0.5 });
+
+        
+        for (int i = 0; i < 10; i++)
+        {
+            modelArr[i] = glm::mat4(1.0f);
+            modelArr[i] = glm::translate(modelArr[i], cubePositions[i]);
+            float angle = 30.0f * i;
+            modelArr[i] = glm::rotate(modelArr[i], glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+        }
+        
 
         glm::mat4 projection = glm::perspective(glm::radians(45.f), float(winSizeX / winSizeY), 0.1f, 100.f);
 
@@ -222,6 +234,9 @@ int main()
 
         glm::vec3 rotor = glm::vec3(1.0, 0.0, 0.0);
         float ang = 0.01;
+
+        double currentTime = glfwGetTime(), lastTime = currentTime, deltaTime;
+        int nbFrames = 0;
 
         glClearColor(0.0, 0.0, 0.0, 1.0);
         glEnable(GL_DEPTH_TEST);
@@ -237,33 +252,43 @@ int main()
 
             /* Render here */
             glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+            testModel->Draw(shader);
 
-            mycam.Update(pWindow);
 
-            shader.setVector("viewPos", mycam.getPosition());
             shader.setVector("lightPos", lightPos);
-
             shader.setMatrix("model", light_model);
             lightCube.draw();
 
             shader.setMatrix("view", mycam.getViewMatrix());
-
-            for (int i = 0; i < 10; i++) {
-                glm::mat4 model = glm::mat4(1.0f);
-                model = glm::translate(model, cubePositions[i]);
-                float angle = 30.0f * i;
-                model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
-                shader.setMatrix("model", model);
+            shader.setVector("viewPos", mycam.getPosition());
+            mycam.Update(pWindow);
+            
+            
+            for (int i = 0; i < 10; i++) 
+            {
+                shader.setMatrix("model", modelArr[i]);
                 m_obj[i].draw();
             }
+
             shader.setMatrix("model", coord_model);
-            m_obj2.draw();
+            coords.draw();
+
 
             /* Swap front and back buffers */
             glfwSwapBuffers(pWindow);
 
             /* Poll for and process events */
             glfwPollEvents();
+
+            currentTime = glfwGetTime();
+            deltaTime = currentTime - lastTime;
+            nbFrames++;
+            if (deltaTime >= 1.0)
+            {
+                glfwSetWindowTitle(pWindow, std::to_string(nbFrames).c_str());
+                lastTime = currentTime;
+                nbFrames = 0;
+            }
         }
     }
 
