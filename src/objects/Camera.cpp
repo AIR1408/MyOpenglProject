@@ -1,7 +1,11 @@
-#include "Camera.h"
-#include <glm\gtx\euler_angles.hpp>
+#include <Camera.h>
+#include <glm/gtc/matrix_transform.hpp>
 
-Camera::Camera(glm::vec3 position, glm::vec3 lookPos)
+Camera::Camera(glm::vec3 position, glm::vec3 lookPos) : speed(0), deltaSpeed(4.5f), 
+                                                        currentTime(0), lastTime(0), deltaTime(0), 
+                                                        lastX(0), lastY(0),
+                                                        yaw(0), pitch(0),
+                                                        xpos(0), ypos(0), firstMouse(true)
 {
 	this->position = position;
 	front = glm::normalize(lookPos - position);

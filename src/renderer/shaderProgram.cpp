@@ -1,4 +1,4 @@
-#include "ShaderProgram.h"
+#include <ShaderProgram.h>
 
 ShaderProgram::ShaderProgram(std::string& vertex_shader_source, std::string& fragment_shader_source)
 {
@@ -24,6 +24,11 @@ ShaderProgram::~ShaderProgram()
 void ShaderProgram::setInt(std::string name, GLuint value)
 {
     glUniform1i(glGetUniformLocation(shader_program_ID, name.c_str()), value);
+}
+
+void ShaderProgram::setFloat(std::string name, GLfloat value)
+{
+    glUniform1f(glGetUniformLocation(shader_program_ID, name.c_str()), value);
 }
 
 void ShaderProgram::setVector(std::string name, glm::vec3 vector)

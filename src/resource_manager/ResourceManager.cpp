@@ -1,17 +1,19 @@
-#include "ResourceManager.h"
+#include <ResourceManager.h>
+#include <glad/glad.h>
+#include <stb_image.h>
 
 ResourceManager::ResourceManager(std::string resourcePath)
 {
     this->resourcePath = resourcePath;
 }
 
-std::string ResourceManager::loadShader(std::string fileName)
+std::string ResourceManager::loadShaderFromFile(std::string fileName)
 {
     std::ifstream fin(resourcePath + "\\shaders\\" + fileName);
     if (!fin.is_open())
     {
         std::cerr << "Can't open file " << fileName << std::endl;
-        exit(-1);
+        system("pause");
     }
     std::ostringstream buf;
     buf << fin.rdbuf();
@@ -19,293 +21,169 @@ std::string ResourceManager::loadShader(std::string fileName)
     return buf.str();
 }
 
-ext::Texture* ResourceManager::loadTexture(std::string fileName)
+std::shared_ptr<Texture> ResourceManager::loadTextureFromFile(std::string fileName)
 {
     std::string path = resourcePath + "\\textures\\" + fileName;
-    ext::Texture* texture = new ext::Texture;
     int width = 0, height = 0, channels = 0;
-    GLenum chan;
     stbi_set_flip_vertically_on_load(true);
     unsigned char* pixels = stbi_load(path.c_str(), &width, &height, &channels, 0);
 
     if (!pixels)
     {
         std::cerr << "Can't load image: " << fileName << std::endl;
-        return nullptr;
+        system("pause");
     }
 
-    switch (channels)
+    std::shared_ptr<Texture> p_texture = std::make_shared<Texture>(pixels, width, height, channels);
+    
+    std::vector<TextureParameter> parameters =
     {
-    case 3: chan = GL_RGB;
-        break;
-    case 4: chan = GL_RGBA;
-        break;
-    default: chan = GL_RGBA;
-        break;
-    }
-
-    glGenTextures(1, &texture->id);
-
-    glBindTexture(GL_TEXTURE_2D, texture->id);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, chan, GL_UNSIGNED_BYTE, pixels);
-    glGenerateMipmap(GL_TEXTURE_2D);
-
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-
+        {GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE},
+        {GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE},
+        {GL_TEXTURE_MAG_FILTER, GL_LINEAR},
+        {GL_TEXTURE_MIN_FILTER, GL_LINEAR},
+    };
+    
+    p_texture->setParameters(parameters);
     stbi_image_free(pixels);
-
-    return texture;
+    return p_texture;
 }
 
-ShaderProgram& ResourceManager::loadProgram()
+ShaderProgram& ResourceManager::loadShaderProgram()
 {
     std::string 
-        vertex_shader = loadShader("\\vertex.txt"), 
-        fragment_shader = loadShader("\\fragment.txt");
+        vertex_shader = loadShaderFromFile("\\vertex.txt"), 
+        fragment_shader = loadShaderFromFile("\\fragment.txt");
 
     ShaderProgram* ID = new ShaderProgram(vertex_shader, fragment_shader);
     return *ID;
 }
 
-std::vector<OBJECT> ResourceManager::loadObject(std::string fileName)
+void ResourceManager::loadObjectFromFile(std::string fileName, std::vector<Object>& objects, std::vector<Material>& materials)
 {
     std::ifstream fin(resourcePath + "\\models\\" + fileName);
     if (!fin.is_open())
     {
         std::cerr << "ERROR::RESOURCE_MANAGER Cannot open file " << fileName << std::endl;
-        exit(-1);
+        system("pause");
     }
-    std::string type, vnt;
+    std::string type, buf;
+    std::stringstream line;
 
-    unsigned int v_id = 0, n_id = 0, t_id = 0;
+    unsigned int v_id = 0, n_id = 0, t_id = 0, material_id = 0;
 
     bool success = true;
 
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> tex_coords;
+    glm::vec3 tempVec3;
+    glm::vec2 tempVec2;
 
-    glm::vec3 pos;
-    glm::vec3 norm;
-    glm::vec2 tex_coord;
+    std::vector<glm::vec3> positions, normals;
+    std::vector<glm::vec2> texCoords;
 
-    ext::Vertex vert;
+    ext::Vertex tempVertex;
 
-    GROUP m_group, d_group;
-    OBJECT m_object, d_object;
-    //d_object.groups.resize(1);
+    Group group;
+    Object object;
 
-    std::vector<OBJECT> objects_vec;
-
-    ReadingMode state = NON_DECL;
-
-    while (fin >> type)
+    while (std::getline(fin, buf))
     {
-        if (std::strcmp(type.c_str(), "v") == 0)
+        type = "";
+        line.clear();
+        line.str(buf);
+        line >> type;
+        if (type == "#" || type == "")
         {
-            fin >> pos.x >> pos.y >> pos.z;
-            positions.push_back(pos);
+
         }
-        else if (std::strcmp(type.c_str(), "vt") == 0)
+        else if (type == "v")
         {
-            fin >> tex_coord.x >> tex_coord.y;
-            tex_coords.push_back(tex_coord);
+            positions.push_back(readVec3FromLine(line));
         }
-        else if (std::strcmp(type.c_str(), "vn") == 0)
+        else if (type == "vt")
         {
-            fin >> norm.x >> norm.y >> norm.z;
-            normals.push_back(norm);
+            texCoords.push_back(readVec2FromLine(line));
         }
-        else if (std::strcmp(type.c_str(), "f") == 0)
+        else if (type == "vn")
         {
-            for (int j = 0; j < 3 && success; j++)
+            normals.push_back(readVec3FromLine(line));
+        }
+        else if (type == "f")
+        {
+            int vertex_counter = 0;
+            while(!line.eof() && vertex_counter < 3 && success)
             {
                 v_id = 0, n_id = 0, t_id = 0;
-                fin >> vnt;
-                int q = 1;
-                for (int i = 0; i < vnt.size() && q; i++)
+                int item_counter = 0;
+                line >> buf;
+                
+                for (const auto& sym : buf)
                 {
-                    switch (q)
+                    if (sym >= '0' && sym <= '9')
                     {
-                    case 1:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            v_id = 10 * v_id + vnt[i] - '0', q = 1;
-                        else if (vnt[i] == '/')
-                            q = 2;
-                        else q = 0;
-                        break;
-                    case 2:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            t_id = 10 * t_id + vnt[i] - '0', q = 3;
-                        else if (vnt[i] == '/')
-                            q = 4;
-                        else q = 0, success = false;
-                        break;
-                    case 3:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            t_id = 10 * t_id + vnt[i] - '0', q = 3;
-                        else if (vnt[i] == '/')
-                            q = 4;
-                        else q = 0;
-                        break;
-                    case 4:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            n_id = 10 * n_id + vnt[i] - '0', q = 5;
-                        else q = 0, success = false;
-                        break;
-                    case 5:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            n_id = 10 * n_id + vnt[i] - '0', q = 5;
-                        else q = 0;
-                        break;
+                        if (item_counter == 0) v_id = 10 * v_id + sym - '0';
+                        else if (item_counter == 1) t_id = 10 * t_id + sym - '0';
+                        else if (item_counter == 2) n_id = 10 * n_id + sym - '0';
+                    }
+                    else if (sym == '/') 
+                    {
+                        item_counter++;
                     }
                 }
 
-                if (v_id)
-                    vert.position = positions[v_id - 1];
-                else
+                if (v_id) tempVertex.position = positions[v_id - 1];
+                else {
                     success = false;
-                    //std::cerr << "ERROR::RESOURCE_MANAGER .obj file syntax wrong - vertex position wasn't declared" << std::endl;
-                if (t_id)
-                    vert.texCoord = tex_coords[t_id - 1];
-                if (n_id)
-                    vert.normal = normals[n_id - 1];
-
-                switch (state)
-                {
-                case ERROR:
-                    break;
-                case NON_DECL:
-                    d_group.vertices.push_back(vert);
-                    break;
-                case OBJECT_DECL:
-                    d_group.vertices.push_back(vert);
-                    break;
-                case OBJECT_GROUP_DECL:
-                    m_group.vertices.push_back(vert);
-                    break;
-                case GROUP_DECL:
-                    d_group.vertices.push_back(vert);
-                    break;
-                default:
-                    break;
+                    std::cerr << "ERROR::RESOURCE_MANAGER .obj file syntax wrong - vertex position wasn't declared" << std::endl;
                 }
+                if (t_id) tempVertex.texCoord = texCoords[t_id - 1];
+                if (n_id) tempVertex.normal = normals[n_id - 1];
 
+                group.vertices.push_back(tempVertex);
+
+                vertex_counter++;
             }
+            //if (vertex_counter != 3) success = false;
         }
-        else if (std::strcmp(type.c_str(), "o") == 0)
+        else if (type == "o")
         {
-            switch (state)
-            {
-            case ERROR:
-                break;
-            case NON_DECL:
-                state = OBJECT_DECL;
-                if (d_group.vertices.size())
-                    d_object.groups.push_back(d_group);
-                if (d_object.groups.size())
-                    objects_vec.push_back(d_object);
-                d_group = GROUP(), m_object = OBJECT();
-                break;
-            case OBJECT_DECL:
-                if (d_group.vertices.size())
-                    m_object.groups.push_back(d_group);
-                if (m_object.groups.size())
-                    objects_vec.push_back(m_object);
-                d_group = GROUP(), m_object = OBJECT();
-                break;
-            case OBJECT_GROUP_DECL:
-                state = OBJECT_DECL;
-                if (m_group.vertices.size())
-                    m_object.groups.push_back(m_group);
-                if (m_object.groups.size())
-                    objects_vec.push_back(m_object);
-                m_group = GROUP(), m_object = OBJECT();
-                break;
-            case GROUP_DECL:
-                state = OBJECT_DECL;
-                if (d_group.vertices.size())
-                    d_object.groups.push_back(d_group);
-                if (d_object.groups.size())
-                    objects_vec.push_back(d_object);
-                d_object = OBJECT();
-                m_group = GROUP(), m_object = OBJECT();
-                break;
-            default:
-                break;
-            }
+            group.material_id = material_id;
+            if (group.vertices.size())
+                object.groups.push_back(group);
+            if (object.groups.size())
+                objects.push_back(object);
+            group = Group(), object = Object();
+            line >> buf;
+            object.name = buf;
         }
-        else if (std::strcmp(type.c_str(), "g") == 0)
+        else if (type == "g")
         {
-            switch (state)
-            {
-            case ERROR:
-                break;
-            case NON_DECL:
-                state = GROUP_DECL;
-                if (d_group.vertices.size())
-                    d_object.groups.push_back(d_group);
-                break;
-            case OBJECT_DECL:
-                state = OBJECT_GROUP_DECL;
-                if (d_group.vertices.size())
-                    m_object.groups.push_back(d_group);
-                m_group = GROUP();
-                break;
-            case OBJECT_GROUP_DECL:
-                if (m_group.vertices.size())
-                    m_object.groups.push_back(m_group);
-                m_group = GROUP();
-                break;
-            case GROUP_DECL:
-                if (d_group.vertices.size())
-                    d_object.groups.push_back(d_group);
-                d_group = GROUP();
-                break;
-            default:
-                break;
-            }
+            group.material_id = material_id;
+            if (group.vertices.size())
+                object.groups.push_back(group);
+            group = Group();
+            line >> buf;
+            group.name = buf;
         }
-        fin.ignore(128, '\n');
+        else if (type == "usemtl")
+        {
+            line >> buf;
+            bool t = true;
+            for (unsigned int i = 1; i < materials.size() && t; i++)
+                if (materials[i].getName() == buf)
+                    material_id = i, t = false;
+        }
+        else if (type == "mtllib")
+        {
+            line >> buf;
+            loadMaterialFromFile(buf, materials);
+        }
+
     }
-    switch (state)
-    {
-    case ERROR:
-        break;
-    case NON_DECL:
-        if (d_group.vertices.size())
-            d_object.groups.push_back(d_group);
-        if (d_object.groups.size())
-            objects_vec.push_back(d_object);
-        d_group = GROUP(), d_object = OBJECT();
-        break;
-    case OBJECT_DECL:
-        if (d_group.vertices.size())
-            m_object.groups.push_back(d_group);
-        if (m_object.groups.size())
-            objects_vec.push_back(m_object);
-        m_object = OBJECT();
-        break;
-    case OBJECT_GROUP_DECL:
-        if (m_group.vertices.size())
-            m_object.groups.push_back(m_group);
-        if (m_object.groups.size())
-            objects_vec.push_back(m_object);
-        m_group = GROUP(), m_object = OBJECT();
-        break;
-    case GROUP_DECL:
-        if (d_group.vertices.size())
-            d_object.groups.push_back(d_group);
-        if (d_object.groups.size())
-            objects_vec.push_back(d_object);
-        d_group = GROUP(), d_object = OBJECT();
-        break;
-    default:
-        break;
-    }
+    if (group.vertices.size())
+        object.groups.push_back(group);
+    if (object.groups.size())
+        objects.push_back(object);
+    group = Group(), object = Object();
     if (!success)
     {
         std::cerr << "ERROR::READING obj file reading error." << std::endl;
@@ -313,115 +191,79 @@ std::vector<OBJECT> ResourceManager::loadObject(std::string fileName)
     }
 
     fin.close();
-    return objects_vec;
 }
 
-Model* ResourceManager::loadObjectMinimum(std::string fileName)
+void ResourceManager::loadMaterialFromFile(std::string fileName, std::vector<Material>& materials)
 {
     std::ifstream fin(resourcePath + "\\models\\" + fileName);
     if (!fin.is_open())
     {
         std::cerr << "ERROR::RESOURCE_MANAGER Cannot open file " << fileName << std::endl;
-        exit(-1);
+        system("pause");
     }
-    std::string type, vnt;
+    std::stringstream line;
+    std::string buf, type;
 
-    unsigned int v_id = 0, n_id = 0, t_id = 0;
+    Material material = Material();
 
-    bool success = true;
-
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> tex_coords;
-
-    glm::vec3 pos;
-    glm::vec3 norm;
-    glm::vec2 tex_coord;
-
-    ext::Vertex vert;
-    std::vector<ext::Vertex> vertices;
-
-    while (fin >> type)
+    while (readNextLineFromFile(fin, line))
     {
-        if (std::strcmp(type.c_str(), "v") == 0)
+        type = "";
+        line >> type;
+        
+        if (type == "newmtl")
         {
-            fin >> pos.x >> pos.y >> pos.z;
-            positions.push_back(pos);
+            line >> buf;
+            materials.push_back(material);
+            material = Material();
+            material.setName(buf);
         }
-        else if (std::strcmp(type.c_str(), "vt") == 0)
-        {
-            fin >> tex_coord.x >> tex_coord.y;
-            tex_coords.push_back(tex_coord);
-        }
-        else if (std::strcmp(type.c_str(), "vn") == 0)
-        {
-            fin >> norm.x >> norm.y >> norm.z;
-            normals.push_back(norm);
-        }
-        else if (std::strcmp(type.c_str(), "f") == 0)
-        {
-            for (int j = 0; j < 3 && success; j++)
-            {
-                v_id = 0, n_id = 0, t_id = 0;
-                fin >> vnt;
-                int q = 1;
-                for (int i = 0; i < vnt.size() && q; i++)
-                {
-                    switch (q)
-                    {
-                    case 1:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            v_id = 10 * v_id + vnt[i] - '0', q = 1;
-                        else if (vnt[i] == '/')
-                            q = 2;
-                        else q = 0;
-                        break;
-                    case 2:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            t_id = 10 * t_id + vnt[i] - '0', q = 3;
-                        else if (vnt[i] == '/')
-                            q = 4;
-                        else q = 0, success = false;
-                        break;
-                    case 3:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            t_id = 10 * t_id + vnt[i] - '0', q = 3;
-                        else if (vnt[i] == '/')
-                            q = 4;
-                        else q = 0;
-                        break;
-                    case 4:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            n_id = 10 * n_id + vnt[i] - '0', q = 5;
-                        else q = 0, success = false;
-                        break;
-                    case 5:
-                        if (vnt[i] >= '0' && vnt[i] <= '9')
-                            n_id = 10 * n_id + vnt[i] - '0', q = 5;
-                        else q = 0;
-                        break;
-                    }
-                }
-
-                if (v_id)
-                    vert.position = positions[v_id - 1];
-                else
-                    success = false;
-                //std::cerr << "ERROR::RESOURCE_MANAGER .obj file syntax wrong - vertex position wasn't declared" << std::endl;
-                if (t_id)
-                    vert.texCoord = tex_coords[t_id - 1];
-                if (n_id)
-                    vert.normal = normals[n_id - 1];
-
-                vertices.push_back(vert);
-            }
-        }
-        fin.ignore(128, '\n');
+        else if (type == "Ka")     material.setAmbient(readVec3FromLine(line));
+        else if (type == "Kd")     material.setDiffuse(readVec3FromLine(line));
+        else if (type == "Ks")     material.setSpecular(readVec3FromLine(line));
+        else if (type == "Ns")     material.setShininess(loadFloatFromLine(line));
+        else if (type == "map_Ka") material.addMap(loadTextureInLine(line), 'a');
+        else if (type == "map_Kd") material.addMap(loadTextureInLine(line), 'd');
+        else if (type == "map_Ks") material.addMap(loadTextureInLine(line), 's');
     }
+    materials.push_back(material);
+    fin.close();
+}
 
-    Mesh* m_mesh = new Mesh(vertices);
-    Model* m_model = new Model;
-    m_model->addMesh(m_mesh);
+glm::vec3 ResourceManager::readVec3FromLine(std::stringstream& stream)
+{
+    glm::vec3 tempVec3;
+    stream >> tempVec3.x >> tempVec3.y >> tempVec3.z;
+    return tempVec3;
+}
 
-    return m_model;
+glm::vec2 ResourceManager::readVec2FromLine(std::stringstream& stream)
+{
+    glm::vec2 tempVec2;
+    stream >> tempVec2.x >> tempVec2.y;
+    return tempVec2;
+}
+
+std::shared_ptr<Texture> ResourceManager::loadTextureInLine(std::stringstream& stream)
+{
+    std::string fileName;
+    stream >> fileName;
+    std::shared_ptr<Texture> tempTexture = loadTextureFromFile(fileName);
+    return tempTexture;
+}
+
+float ResourceManager::loadFloatFromLine(std::stringstream& stream)
+{
+    float value;
+    stream >> value;
+    return value;
+}
+
+bool ResourceManager::readNextLineFromFile(std::ifstream& fin, std::stringstream& stream)
+{
+    std::string buffer;
+    std::getline(fin, buffer);
+    stream.clear();
+    stream.str(buffer);
+    return !fin.eof();
 }
